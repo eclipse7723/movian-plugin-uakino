@@ -1,4 +1,4 @@
-# movian-uaserials-ukino
+# movian-uaserials-uakino
 
 https://uakino.me/ integration for Movian
 
@@ -8,7 +8,7 @@ Check [Releases](https://github.com/eclipse7723/movian-plugin-uakino/releases) f
 
 ## ...Or Build
 
-If you want newest version, please clone repository and Run `build.py`
+If you want the newest version, please clone repository and Run `build.py`
 
 ## Install plugin
 

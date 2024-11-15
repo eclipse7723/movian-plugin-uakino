@@ -1,55 +1,14 @@
 function parseCollections(page, href) {
     /* Парсит страницы с коллекциями фильмов и сериалов */
-    const doc = fetchDoc(href);
-
-    const items = doc.getElementById("dle-content").children;
-    items.forEach(function(item) {
-        const data = item.children[0];    // tag 'a'
-        const children = data.children;   // tags 'img', div 'uas-col-title', div 'uas-col-count'
-
-        const title = children[1].textContent;
-        const itemHref = data.attributes.getNamedItem('href').value;
-        const itemImg = children[0].attributes.getNamedItem('data-src').value;
-        const itemCount = children[2].textContent;
-
-        var desc = "";
-        desc += formatInfo("Повна назва: " + formatBold(title))
-        desc += "\n" + formatInfo("Кількість в цій добірці: " + formatBold(itemCount));
-        desc = new RichText(desc);
-
-        page.appendItem(PLUGIN.id + ":collection:" + itemHref + ":" + title.replace(":", ""), 'video', {
-            title: title,
-            icon: itemImg,
-            description: desc,
-        });
-        page.entries += 1
-    });
+    // todo
 }
 
 
 function parseMovieItem(page, item) {
     /* добавляет элемент фильма на страницу. item = div.short-cols */
-
-    const children = item.children;
-    const titleUa = children[1].textContent;
-    const titleEn = children[2].textContent;
-    const itemHref = children[0].attributes.getNamedItem('href').value;
-    const itemImg = children[0].getElementByTagName("img")[0].attributes.getNamedItem('data-src').value;
-
-    var desc = "";
-    if (titleEn) {
-        desc += formatInfo("Оригінальна назва: " + formatBold(titleEn));
-    }
-
-    const label1 = children[0].getElementByClassName("short-label-level-1")[0]
-    if (label1) {
-        desc += "\n" + formatInfo("Тип: " + formatBold(label1.children[0].textContent));
-    }
-    const label2 = children[0].getElementByClassName("short-label-level-2")[0]
-    if (label2) {
-        desc += "\n" + formatInfo("Кількість: " + formatBold(label2.children[0].textContent));
-    }
-
+	
+	// todo
+	
     page.appendItem(PLUGIN.id + ":moviepage:" + itemHref + ":" + titleUa.replace(":", " "), 'video', {
         title: titleUa,
         icon: itemImg,
@@ -59,7 +18,7 @@ function parseMovieItem(page, item) {
 }
 
 
-function parseMovies(page, href) {
+function parseMovies(page, href) { // todo
     /* Парсит краткую инфу про фильмы по указанному адресу (название, иконка) */
     const doc = fetchDoc(href);
 
@@ -70,7 +29,7 @@ function parseMovies(page, href) {
 }
 
 
-function parseMovie(page, movieData) {
+function parseMovie(page, movieData) {  // todo
     /* Парсит видео */
     movieData.data.forEach(function(data) {
         if (data.tabName !== "Плеєр") {
@@ -86,7 +45,7 @@ function parseMovie(page, movieData) {
 
 /* сериал */
 
-function __parseTvSeries(page, movieData, seasonsData) {
+function __parseTvSeries(page, movieData, seasonsData) {  // todo
     seasonsData.forEach(function(seasonData) {
         page.appendPassiveItem("separator", "", {
             title: seasonData.title
@@ -367,6 +326,8 @@ function parseTrailer(page, movieData) {
 /* видео */
 
 function parseVideoURL(href) {
+	// validation
+	
     const allowedCDNs = ["://tortuga.wtf/", "://tortuga.tw/"]
 
     var isValidSource = false;
@@ -381,10 +342,14 @@ function parseVideoURL(href) {
         console.error("Unknown CDN url '" + href + "' - url must include one of " + allowedCDNs.join(" or "))
         return null;
     }
-
+	
+	// actual url parsing
+		
+	/* todo
     const HTML = fetchHTML(href);
     const pattern = /file: "(.+)"/;
     const match = HTML.match(pattern);
+	*/
 
     if (!match) {
         console.error("Not found video url at '" + href + "' with pattern '" + pattern + "'")
@@ -396,8 +361,8 @@ function parseVideoURL(href) {
 
 /* paginator */
 
-function createPageLoader(page, searchUrlBuilder, startPageNumber) {
-    const itemsPerPage = 18;
+function createPageLoader(page, searchUrlBuilder, startPageNumber) {  // todo
+    const itemsPerPage = 18; // todo
     var nextPageNumber = startPageNumber;
     var hasNextPage = true;
 
