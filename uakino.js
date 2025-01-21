@@ -53,6 +53,10 @@ new page.Route(PLUGIN.id + ":start", function(page) {
         title: "Пошук на " + BASE_URL
     });
 
+    page.appendItem(PLUGIN.id + ":main-page", "directory", {
+        title: "В центрі уваги (усі жанрі)" + " ▶"
+    })
+
     var categories = [
         {name: "Серіали", tag: "/series"},
         {name: "Фільми", tag: "/films"},
@@ -71,6 +75,16 @@ new page.Route(PLUGIN.id + ":start", function(page) {
     })
 
 });
+
+new page.Route(PLUGIN.id + ":main-page", function(page) {
+    /* страница со списками с главной страницы */
+    setPageHeader(page, DEFAULT_PAGE_TYPE, PLUGIN.id + " - " + "В центрі уваги");
+
+    page.loading = true;
+
+    const htmlText = fetchHTML(href);
+    const doc = html.parse(htmlText).root;
+
 
 new page.Route(PLUGIN.id + ":list-select:(.*):(.*)", function(page, tag, title) {
     /* страница с выбором - все фильмы или фильтровать */
@@ -193,10 +207,11 @@ new page.Route(PLUGIN.id + ":moviepage:(.*):(.*)", function(page, href, title) {
 
     // get details of movie (year, etc..)
 
-    var detailsHTML = doc.getElementByClassName("short-list")[0].children;
+    var detailsHTML = doc.getElementById("movie-left")[0].children; // fixme: sometimes this info inside "movie-right"...
+    const itemInfo = detailsHTML.getElementByClassName("film-info")[0].children;
     var details = {};
-    for (var i = 0; i < detailsHTML.length; i++) {
-        const item = detailsHTML[i];
+    for (var i = 0; i < itemInfo.length; i++) {
+        const item = itemInfo[i];
         if (!item.textContent) { continue; }
         const match = item.textContent.match(/([^:]+):(.+)/);
         if (match) {
@@ -213,7 +228,7 @@ new page.Route(PLUGIN.id + ":moviepage:(.*):(.*)", function(page, href, title) {
         imdbRating = undefined  // todo: try to fetch from IMDB api actual rating
     }
 
-    var img = doc.getElementByClassName("fimg")[0].children[0].attributes.getNamedItem("src").value;
+    var img = detailsHTML.getElementByClassName("film-poster")[0].children[0].attributes.getNamedItem("href").value;
 
     var description = doc.getElementByClassName("ftext")[0].textContent;
 

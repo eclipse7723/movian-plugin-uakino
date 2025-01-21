@@ -1,35 +1,81 @@
 function parseCollections(page, href) {
     /* Парсит страницы с коллекциями фильмов и сериалов */
-    // todo
+    const doc = fetchDoc(href);
+
+    const items = doc.getElementById("dle-content").children;
+    items.forEach(function(item) {
+        const data = item.children[0];    // tag 'a'
+        const children = data.children;   // tags 'img', div 'uas-col-title', div 'uas-col-count'
+
+        const title = children[1].textContent;
+        const itemHref = data.attributes.getNamedItem('href').value;
+        const itemImg = children[0].attributes.getNamedItem('data-src').value;
+        const itemCount = children[2].textContent;
+
+        var desc = "";
+        desc += formatInfo("Повна назва: " + formatBold(title))
+        desc += "\n" + formatInfo("Кількість в цій добірці: " + formatBold(itemCount));
+        desc = new RichText(desc);
+
+        page.appendItem(PLUGIN.id + ":collection:" + itemHref + ":" + title.replace(":", ""), 'video', {
+            title: title,
+            icon: itemImg,
+            description: desc,
+        });
+        page.entries += 1
+    });
 }
 
 
 function parseMovieItem(page, item) {
     /* добавляет элемент фильма на страницу. item = div.short-cols */
-	
-	// todo
-	
-    page.appendItem(PLUGIN.id + ":moviepage:" + itemHref + ":" + titleUa.replace(":", " "), 'video', {
-        title: titleUa,
-        icon: itemImg,
+
+    const children = item.children;
+
+    const itemImg = children[0] // div.movie-img-1.skeleton
+    const iconHref = itemImg.getElementByTagName("img")[0].attributes.getNamedItem('data-src').value;
+
+    const movieHref = children[1].attributes.getNamedItem('href').value;
+
+    const itemDesc = children[2][0] // div.movie-desc -> div.clearfix
+    const title = itemDesc.getElementByClassName('deck-title')[0].value;
+
+    var desc = "";
+    for (var i = 0; i < itemDesc.children.length; i++) {
+        const item = itemDesc.children[i];
+        if (item.className === "deck-title") {
+            continue;
+        }
+
+        desc += formatInfo(item.className === "fi-label" ? formatBold(item.textContent) + "\n" : item.textContent);
+    }
+
+    if (itemImg.getElementByClassName("full-season")) {
+        const seasonData = itemImg.getElementByClassName("full-season")[0].textContent;
+        desc += "\n" + formatInfo("full-season: " + formatBold(seasonData));
+    }
+
+    page.appendItem(PLUGIN.id + ":moviepage:" + movieHref + ":" + title.replace(":", " "), 'video', {
+        title: title,
+        icon: iconHref,
         description: new RichText(desc),
     });
     page.entries += 1
 }
 
 
-function parseMovies(page, href) { // todo
+function parseMovies(page, href) {
     /* Парсит краткую инфу про фильмы по указанному адресу (название, иконка) */
     const doc = fetchDoc(href);
 
-    const items = doc.getElementByClassName("short-cols");
+    const items = doc.getElementByClassName("movie-item");
     items.forEach(function(item) {
         parseMovieItem(page, item);
     });
 }
 
 
-function parseMovie(page, movieData) {  // todo
+function parseMovie(page, movieData) {
     /* Парсит видео */
     movieData.data.forEach(function(data) {
         if (data.tabName !== "Плеєр") {
@@ -45,14 +91,16 @@ function parseMovie(page, movieData) {  // todo
 
 /* сериал */
 
-function __parseTvSeries(page, movieData, seasonsData) {  // todo
+function __parseTvSeries(page, movieData, seasonsData) {
     seasonsData.forEach(function(seasonData) {
         page.appendPassiveItem("separator", "", {
             title: seasonData.title
         });
         seasonData.episodes.forEach(function(episodeData) {
-            page.appendItem(PLUGIN.id + ":play-select-sound:" + movieData.title + ":" + seasonData.title + ":" + episodeData.title, "directory", {
-                title: episodeData.title
+            page.appendItem(PLUGIN.id + ":play-select-sound:" + movieData.title + ":" + seasonData.title + ":" + episodeData.title, "video", {
+                title: episodeData.title,
+                icon: currentMovieData["img"],
+                description: seasonData.title + ', ' + episodeData.title
             });
         });
     });
@@ -83,11 +131,15 @@ function findSoundsByEpisode(movieData, season, episode) {
     return sounds;
 }
 
-function parseTvEpisode(page, movieData, season, episode) {
+function parseTvEpisodes(page, movieData, season, episode) {
     const sounds = findSoundsByEpisode(movieData, season, episode);
 
     if (!sounds) {
         // error handled in `findSoundsByEpisode`
+        page.appendPassiveItem("separator", '', {
+            title: "Немає озвучок або щось пішло не так :("
+        });
+        return;
     }
 
     sounds.forEach(function(data) {
@@ -100,6 +152,7 @@ function parseTvEpisode(page, movieData, season, episode) {
         page.appendItem(PLUGIN.id + ":play:" + playData, "directory", {
             title: data.title
         });
+        page.entries += 1;
     })
 }
 
@@ -246,7 +299,7 @@ function parseListFilters(page, tag, title, filters) {
 
     if (hasChannels && filters.indexOf("channel") !== -1) {
         putSeparator("Телеканал");
-        
+
         // channels with 18 and more movies (some exceptions to young but popular channels)
         const popularChannels = [
             "Netflix", "BBC", "Amazon", "Apple TV+", "HBO", "FX", "Hulu", "CBS", "Paramount+",
@@ -297,8 +350,10 @@ function __parseMovieVideo(page, movieData, videoUrl) {
         title: movieData.title,
         href: videoUrl,
     })
-    page.appendItem(PLUGIN.id + ":play:" + playData, "directory", {
-        title: movieData.title
+    page.appendItem(PLUGIN.id + ":play:" + playData, "video", {
+        title: movieData.title,
+        icon: currentMovieData["img"],
+        description: 'Нажміть "Х", щоб почати перегляд відео...',
     });
 }
 
@@ -326,8 +381,6 @@ function parseTrailer(page, movieData) {
 /* видео */
 
 function parseVideoURL(href) {
-	// validation
-	
     const allowedCDNs = ["://tortuga.wtf/", "://tortuga.tw/"]
 
     var isValidSource = false;
@@ -342,14 +395,10 @@ function parseVideoURL(href) {
         console.error("Unknown CDN url '" + href + "' - url must include one of " + allowedCDNs.join(" or "))
         return null;
     }
-	
-	// actual url parsing
-		
-	/* todo
+
     const HTML = fetchHTML(href);
     const pattern = /file: "(.+)"/;
     const match = HTML.match(pattern);
-	*/
 
     if (!match) {
         console.error("Not found video url at '" + href + "' with pattern '" + pattern + "'")
@@ -361,8 +410,8 @@ function parseVideoURL(href) {
 
 /* paginator */
 
-function createPageLoader(page, searchUrlBuilder, startPageNumber) {  // todo
-    const itemsPerPage = 18; // todo
+function createPageLoader(page, searchUrlBuilder, startPageNumber) {
+    const itemsPerPage = 18;
     var nextPageNumber = startPageNumber;
     var hasNextPage = true;
 
